@@ -1,0 +1,35 @@
+services:
+  ops-dns-mysql:
+    image: mysql:5.7
+    container_name: op-mysql-5.7
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - "./mysql/my.cnf:/etc/mysql/my.cnf"
+      - "./mysql/datadir:/var/lib/mysql"
+      - "./mysql/named.sql:/opt/named.sql"
+    environment:
+      MYSQL_DATABASE: named
+      MYSQL_ROOT_PASSWORD: 123456
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-uroot", "-p123456"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+   
+  ops-dns-web:
+    image: breaklinux/flask-dns-web:v1
+    container_name: op-dns-web
+    restart: always
+    ports:
+      - "80:5000"
+    links:
+      - ops-dns-mysql 
+    depends_on:
+      - ops-dns-mysql
+    healthcheck:
+      test: [ "CMD", "dig", "+short", "ops-dns-mysql" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
